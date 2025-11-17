@@ -5,6 +5,10 @@ fluorescent images of tissues containing both nucleus and cell membrane markers.
 @author: Uttam Lab
 """
 
+##### LIGHTLY FORKED VERSION FOR USE WITH APPOSE #####
+# * Replaced print statements with global report callback.
+# * Appended run code to actually do the segmentation.
+
 import numpy as np
 import matplotlib.pyplot as plt
 from skimage.measure import regionprops, label
@@ -16,6 +20,13 @@ from scipy import ndimage
 import time
 import cv2
 from sklearn.cluster import KMeans
+
+
+report = print
+def listen(callback):
+    global report
+    report = callback
+
 
 ###############################################################################
 ### AUXILIARY FUNCTIONS
@@ -549,7 +560,7 @@ def remove_background(mask_local, mask_global, p_em, pct):
         else:
             thr_prb = pct[i]
         temp_mask = p_em[:,:,i] > thr_prb
-        print('\tpropability threshold (channel {0}) = {1:.03f}'.format(i, thr_prb))
+        report('\tpropability threshold (channel {0}) = {1:.03f}'.format(i, thr_prb))
         mask_global[:,:,i] = np.logical_and(mask_global[:,:,i], temp_mask)
         mask_local[:,:,i] = np.logical_and(mask_local[:,:,i], mask_global[:,:,i])
     return mask_local, mask_global
@@ -560,7 +571,7 @@ def calc_likelihood(img, mask_local, mask_global):
     i_min = np.zeros((c,1), dtype='float64')
     for i in range(c):
         i_min[i,0] = np.min(img[mask_local[:,:,i],i])
-        print('\tmin intensity (channel {0}) = {1:.4f}'.format(i, i_min[i,0]))
+        report('\tmin intensity (channel {0}) = {1:.4f}'.format(i, i_min[i,0]))
     t_t = np.zeros((c,1), dtype='float64')
     for i in range(c):
         t_t[i,0] = threshold_multiotsu(img[:,:,0], classes=2)[0]
@@ -766,7 +777,7 @@ def convexity_analysis(mask_ternary, area_thr=20, cp_thr=5):
     nuclei_clusters_info['clusters']['AvrArea'] = a_avr
     nuclei_clusters_info['clusters']['Ncp'] = n_cp_avr
     nuclei_clusters_info['clusters']['Dcp'] = d_cp_avr
-    print('\t---------------------------------------------------\n'+
+    report('\t---------------------------------------------------\n'+
           '\tNon-convexity Threshold = {0:.0f} pxs\n'.format(cp_thr)+
           '\tMin Area Threshold = {0:.0f} pxs\n'.format(area_thr)+
           '\tSmall Object Area Threshold = {0:.0f} pxs\n'.format(n_area_thr)+
@@ -798,7 +809,7 @@ def convexity_analysis(mask_ternary, area_thr=20, cp_thr=5):
 
 def process_clusters(img, mask_local_ternary, clusters, nuc_seg, clust_small, nuclei_clusters_info, cp_thr=5, area_thr=20, cy5_thr=25, dist_tr='DT'):
     """Processing of Nuclei Clusters Using Pertubated Watershed and Watershed with Virtual Cuts"""
-    print('\ta. Pertubated Watershed')
+    report('\ta. Pertubated Watershed')
     try:
         otsu_3 = threshold_multiotsu(nuclei_clusters_info['nuclei']['data'], classes=3)
         a1 = otsu_3[0]
@@ -844,7 +855,7 @@ def process_clusters(img, mask_local_ternary, clusters, nuc_seg, clust_small, nu
                         nuc_seg[h1+hh1:h1+hh2, w1+ww1:w1+ww2][ccf] = n_nuc
                         #nuc_seg[h1:h2, w1:w2][hh1:hh2, ww1:ww2][ccf] = n_nuc
             else:
-                print('\t\tWARNING: Self-intersection in Perturbed Watershed: Nsp = 1')
+                report('\t\tWARNING: Self-intersection in Perturbed Watershed: Nsp = 1')
                 cc_wosi = remove_selfintersection(p.image)
                 cc_wosi_props = label(cc_wosi, background=False, connectivity=2)
                 cc_wosi_props = regionprops(cc_wosi_props)
@@ -877,7 +888,7 @@ def process_clusters(img, mask_local_ternary, clusters, nuc_seg, clust_small, nu
                     else:
                         clusters.append((p.image, (h1+hh1, w1+ww1, h1+hh2, w1+ww2)))
                 else:
-                    print('\t\tWARNING: Self-intersection in Perturbed Watershed: Nsp > 1')
+                    report('\t\tWARNING: Self-intersection in Perturbed Watershed: Nsp > 1')
                     cc_wosi = remove_selfintersection(p.image)
                     cc_wosi_props = label(cc_wosi, background=False, connectivity=2)
                     cc_wosi_props = regionprops(cc_wosi_props)
@@ -887,11 +898,11 @@ def process_clusters(img, mask_local_ternary, clusters, nuc_seg, clust_small, nu
                             if p_wosi.area > area_thr:
                                 clusters.append((p_wosi.image, (h1+hh1+hhh1, w1+ww1+www1, h1+hh1+hhh2, w1+ww1+www2)))
         else:
-            print('\t\tWARNING: in Perturbed Watershed the number of seed points is not positive, Nsp = {0}'.format(n_ws))
-    print('\t\t- Nuclei Segmentation: {0}\n'.format(n_nuc)+
+            report('\t\tWARNING: in Perturbed Watershed the number of seed points is not positive, Nsp = {0}'.format(n_ws))
+    report('\t\t- Nuclei Segmentation: {0}\n'.format(n_nuc)+
           '\t\t- Nuclei Clusters\t: {0}\n'.format(len(clust_unknown))+
           '\t\t- Small Objects\t: {0}'.format(len(clust_small)))
-    print('\tb. Virtual Cuts')
+    report('\tb. Virtual Cuts')
     while len(clust_unknown) > 0:
         cl = clust_unknown[0]
         cc = cl[0]
@@ -950,7 +961,7 @@ def process_clusters(img, mask_local_ternary, clusters, nuc_seg, clust_small, nu
                             hh1, ww1, hh2, ww2 = p.bbox
                             clust_unknown.append((p.image, (h1+hh1, w1+ww1, h1+hh2, w1+ww2)))
                 else:
-                    print('\t\tWARNING: in Virtual Cuts the number of seed points is neither 1 nor 2')
+                    report('\t\tWARNING: in Virtual Cuts the number of seed points is neither 1 nor 2')
             else:
                 if a_cc < a1:
                     if a_cc > area_thr:
@@ -961,7 +972,7 @@ def process_clusters(img, mask_local_ternary, clusters, nuc_seg, clust_small, nu
                     ccf = adaptive_morphological_filter(cc, d_max)
                     nuc_seg[h1:h2, w1:w2][ccf] = n_nuc
         else:
-            print('Self-intersection in Virtual Cuts')
+            report('Self-intersection in Virtual Cuts')
             cc_wosi = remove_selfintersection(p.image)
             cc_wosi_props = label(cc_wosi, background=False, connectivity=2)
             cc_wosi_props = regionprops(cc_wosi_props)
@@ -970,14 +981,14 @@ def process_clusters(img, mask_local_ternary, clusters, nuc_seg, clust_small, nu
                     hhh1, www1, hhh2, www2 = p_wosi.bbox
                     if p_wosi.area > area_thr:
                         clust_unknown.append((p_wosi.image, (h1+hh1+hhh1, w1+ww1+www1, h1+hh1+hhh2, w1+ww1+www2)))
-    print('\t\t- Nuclei Segmentation: {0}\n'.format(n_nuc)+
+    report('\t\t- Nuclei Segmentation: {0}\n'.format(n_nuc)+
           '\t\t- Nuclei Clusters\t: {0}\n'.format(len(clust_unknown))+
           '\t\t- Small Objects\t: {0}'.format(len(clust_small)))
     return nuc_seg, clust_small
 
 def process_small_objects(clust_small, nuc_seg, nuclei_clusters_info, h, w):
     """Processing of Small Connected Components"""
-    print('\tc. Adding of Small Objects')
+    report('\tc. Adding of Small Objects')
     
     def wide_mask(cc, d, h1, w1, h2, w2, h, w):
         hh1 = np.max([0, h1-d])
@@ -1003,8 +1014,8 @@ def process_small_objects(clust_small, nuc_seg, nuclei_clusters_info, h, w):
     otsu_3 = threshold_multiotsu(small_area, classes=3)
     a_max = np.max([otsu_3[1], nuclei_clusters_info['nuclei']['min']])
     a_min = np.max([otsu_3[0], nuclei_clusters_info['nuclei']['min']/2])
-    print('\t\t* Min Area Threshold = {0}'.format(a_min))
-    print('\t\t* Max Area Threshold = {0}'.format(a_max))
+    report('\t\t* Min Area Threshold = {0}'.format(a_min))
+    report('\t\t* Max Area Threshold = {0}'.format(a_max))
     n_nuc = np.max(nuc_seg)
     for i in inds:
         cl = clust_small[i]
@@ -1019,7 +1030,7 @@ def process_small_objects(clust_small, nuc_seg, nuclei_clusters_info, h, w):
         elif mw1 == 0 and ai >= a_min:
             n_nuc = n_nuc + 1
             nuc_seg[h1:h2, w1:w2][cc] = n_nuc
-    print('\t\t- Nuclei Segmentation: {0}\n'.format(n_nuc)+
+    report('\t\t- Nuclei Segmentation: {0}\n'.format(n_nuc)+
           '\t\t- Nuclei Clusters\t: 0\n'+
           '\t\t- Small Objects\t: {0}'.format(len(clust_small)))
     return nuc_seg
@@ -1067,10 +1078,10 @@ def filter_nuclei_mask(mask):
         n1.remove(0)
     n1 = len(n1)
     if n0 != n1:
-        print('\tWARNING: Nuclei Segmentation Labeling Is Not Continuous')
+        report('\tWARNING: Nuclei Segmentation Labeling Is Not Continuous')
         #new_mask = label(new_mask, background=0, connectivity=2)
     mask_status = mask_statistics(new_mask)
-    print('\t---------------------------------------------------\n'+
+    report('\t---------------------------------------------------\n'+
           '\tSummary for Nuclei Segmentation\n'+
           '\t---------------------------------------------------\n'+
           '\t\t- Number of nuclei = {0}\n'.format(mask_status['n_total'])+
@@ -1407,25 +1418,25 @@ def nuclei_segmentation(intensity,
                         ternary_met='Argmax',
                         visualization=False):
     global_time = time.time()
-    print('\nNUCLEI SEGMENTATION...\n')
+    report('\nNUCLEI SEGMENTATION...\n')
     
-    print(' 0. Preprocessing...')
+    report(' 0. Preprocessing...')
     local_time = time.time()
     channel_names = ('Nuclei','Cell Membranes')
     img = normalize_img(intensity)
     if visualization:
         intensity2rgb(img, return_rgb=False)
-    print('\t-processing time = {0:.2f} seconds'.format(time.time()-local_time))
+    report('\t-processing time = {0:.2f} seconds'.format(time.time()-local_time))
     
-    print(' 1. Computing of A Priori Probabilities...')
+    report(' 1. Computing of A Priori Probabilities...')
     local_time = time.time()
     p_em = calc_empirical_probabilities(img, sigma=sigma0)
     if visualization:
         for i in range(len(channel_names)):
             plot_img(p_em[:,:,i], tlt='{0}: A Priori Probability'.format(channel_names[i]))
-    print('\t-processing time = {0:.2f} seconds'.format(time.time()-local_time))
+    report('\t-processing time = {0:.2f} seconds'.format(time.time()-local_time))
     
-    print(' 2. Computing of A Priori Global and Local (Binary) Masks...')
+    report(' 2. Computing of A Priori Global and Local (Binary) Masks...')
     local_time = time.time()
     mask_global_binary = calc_global_binary_mask(img, nk=nk, t0=t0)
     mask_local_binary = calc_local_binary_mask(img, r0=r0, k0=k0, smoothing=True)
@@ -1434,47 +1445,47 @@ def nuclei_segmentation(intensity,
         for i in range(len(channel_names)):
             plot_img(mask_global_binary[:,:,i], tlt='{0}: A Priori Global Mask'.format(channel_names[i]))
             plot_img(mask_local_binary[:,:,i], tlt='{0}: A Priori Local Mask'.format(channel_names[i]))
-    print('\t-processing time = {0:.2f} seconds'.format(time.time()-local_time))
+    report('\t-processing time = {0:.2f} seconds'.format(time.time()-local_time))
     
-    print(' 3. Computing of Likelihood...')
+    report(' 3. Computing of Likelihood...')
     local_time = time.time()
     likelihood = calc_likelihood(img, mask_local_binary, mask_global_binary)
     if visualization:
         plot_img(likelihood, tlt='Likelihood Function', cmp='bwr')
-    print('\t-processing time = {0:.2f} seconds'.format(time.time()-local_time))
+    report('\t-processing time = {0:.2f} seconds'.format(time.time()-local_time))
         
-    print(' 4. Computing of A Posteriori Global and Local (Ternary) Masks...')
+    report(' 4. Computing of A Posteriori Global and Local (Ternary) Masks...')
     local_time = time.time()
     p_local, p_global = calc_aposteriori_probabilities(p_em, mask_local_binary, likelihood)
     del p_em, mask_global_binary, mask_local_binary, likelihood
     mask_local_ternary = calc_ternary_mask(img, p_local, met=ternary_met)
     mask_global_ternary = calc_ternary_mask(img, p_global, met=ternary_met)
-    print('\tclustering method: {0}'.format(ternary_met))
+    report('\tclustering method: {0}'.format(ternary_met))
     if visualization:
         plot_img(mask_local_ternary, tlt='A Posteriori Local Mask ({0})'.format(ternary_met))
         plot_img(mask_global_ternary, tlt='A Posteriori Global Mask ({0})'.format(ternary_met))
     del p_local, p_global
-    print('\t-processing time = {0:.2f} seconds'.format(time.time()-local_time))
+    report('\t-processing time = {0:.2f} seconds'.format(time.time()-local_time))
     
-    print(' 5. Convexity Analysis...\n\tformation of:\n'+
+    report(' 5. Convexity Analysis...\n\tformation of:\n'+
     '\t -initial Nuclei Segmentation (NS)\n\t -list of Nuclei Clusters (NC)\n\t -list of Small Objects (SO)')
     local_time = time.time()
     nuc_seg, nuc_clust, small_obj, nuclei_clusters_info = convexity_analysis(mask_global_ternary, area_thr=area_threshold, cp_thr=convexity_threshold)
-    print('\t-processing time = {0:.2f} seconds'.format(time.time()-local_time))
+    report('\t-processing time = {0:.2f} seconds'.format(time.time()-local_time))
     
-    print(' 6. Processing of Nuclei Clusters and Small Objects...')
+    report(' 6. Processing of Nuclei Clusters and Small Objects...')
     local_time = time.time()
     nuc_seg, small_obj = process_clusters(img, mask_local_ternary, nuc_clust, nuc_seg, small_obj, nuclei_clusters_info, 
                                           cp_thr=convexity_threshold, area_thr=area_threshold, cy5_thr=cell_marker_threshold, dist_tr=dist_tr)
     nuc_seg = process_small_objects(small_obj, nuc_seg, nuclei_clusters_info, img.shape[0], img.shape[1])
-    print('\t-processing time = {0:.2f} seconds'.format(time.time()-local_time))
+    report('\t-processing time = {0:.2f} seconds'.format(time.time()-local_time))
     
-    print(' 7. Shape Smoothing of Segmented Nuclei...')
+    report(' 7. Shape Smoothing of Segmented Nuclei...')
     local_time = time.time()
     nuc_seg, nuc_seg_status = filter_nuclei_mask(nuc_seg)
-    print('\t-processing time = {0:.2f} seconds'.format(time.time()-local_time))
+    report('\t-processing time = {0:.2f} seconds'.format(time.time()-local_time))
     
-    print('\nNUCLEI SEGMENTATION COMPLETED: processing time = {0:.2f} seconds'.format(time.time()-global_time))
+    report('\nNUCLEI SEGMENTATION COMPLETED: processing time = {0:.2f} seconds'.format(time.time()-global_time))
     return nuc_seg, nuc_seg_status, mask_local_ternary, mask_global_ternary
 
 def nuclei_cell_segmentation(intensity,
@@ -1552,47 +1563,47 @@ def nuclei_cell_segmentation(intensity,
                                                                                            t0=t0,
                                                                                            ternary_met=ternary_met,
                                                                                            visualization=visualization)
-    print('\nCELL SEGMENTATION...\n')
+    report('\nCELL SEGMENTATION...\n')
     
-    print(' 8. Formation of Initial Cell Segmentation...')
+    report(' 8. Formation of Initial Cell Segmentation...')
     local_time = time.time()
     cel_seg, nuclei_prop, nuclei, n_nuclei = initialize_cell_segmentation(nuc_seg)
-    print('\tinitial number of segmented cells = {0}'.format(n_nuclei))
-    print('\t-processing time = {0:.2f} seconds'.format(time.time()-local_time))
+    report('\tinitial number of segmented cells = {0}'.format(n_nuclei))
+    report('\t-processing time = {0:.2f} seconds'.format(time.time()-local_time))
     
-    print(' 9. Skeletonization of Cell Membrane Global Ternary Mask...')
+    report(' 9. Skeletonization of Cell Membrane Global Ternary Mask...')
     local_time = time.time()
     mask_membraines = mask_global_ternary[:,:,0] == 255
     area_threshold_cell = np.max([0.5*nuc_seg_status['area_avr'], nuc_seg_status['area_avr']-nuc_seg_status['area_std']])
-    print('\tMinimal Area of a Cell without Nucleus = {0:.1f} pxs'.format(area_threshold_cell))
+    report('\tMinimal Area of a Cell without Nucleus = {0:.1f} pxs'.format(area_threshold_cell))
     mask_membraines_cuts, mask_skeleton = get_mask_cuts_mod(mask_membraines, area_threshold_cell)
-    print('\t-processing time = {0:.2f} seconds'.format(time.time()-local_time))
+    report('\t-processing time = {0:.2f} seconds'.format(time.time()-local_time))
     
-    print('10. Euler Number Filtering...')
+    report('10. Euler Number Filtering...')
     local_time = time.time()
     cel_seg, nuclei, n_cells = euler_number_filter_mod(cel_seg, mask_membraines_cuts, nuclei, n_nuclei,
                                                        small_area=area_threshold_cell, area_ratio_thr=area_ratio_threshold)
-    print('\tfinal number of segmented cells = {0}'.format(n_cells))
-    print('\t-processing time = {0:.2f} seconds'.format(time.time()-local_time))
+    report('\tfinal number of segmented cells = {0}'.format(n_cells))
+    report('\t-processing time = {0:.2f} seconds'.format(time.time()-local_time))
     
-    print('11. Isolated Nuclei Filtering...')
+    report('11. Isolated Nuclei Filtering...')
     local_time = time.time()
     cel_seg, nuclei = isolated_nuclei_filter(cel_seg, mask_membraines, nuclei_prop, nuclei, u0=dilation_radius)
-    print('\t-processing time = {0:.2f} seconds'.format(time.time()-local_time))
+    report('\t-processing time = {0:.2f} seconds'.format(time.time()-local_time))
     
-    print('12. Threshold Filtering and Smoothing of Cell Segmentation...')
+    report('12. Threshold Filtering and Smoothing of Cell Segmentation...')
     local_time = time.time()
     cel_seg = threshold_filter(cel_seg, mask_skeleton, nuclei_prop, nuclei)
-    print('\t-processing time = {0:.2f} seconds'.format(time.time()-local_time))
+    report('\t-processing time = {0:.2f} seconds'.format(time.time()-local_time))
     
     if visualization:
-        print('13. Plotting of Nuclei and Cell Segmentations...')
+        report('13. Plotting of Nuclei and Cell Segmentations...')
         local_time = time.time()
         img = normalize_img(intensity)
         img = intensity2rgb(img, return_rgb=True)
         plot_img(mark_boundaries(img, nuc_seg, color=(1,1,1)), tlt='Nuclei Segmentation: number of nuclei = {0}'.format(n_nuclei))
         plot_img(mark_boundaries(img, cel_seg, color=(0,1,0)), tlt='Cell Segmentation: number of cells = {0}'.format(n_cells))
-        print('\t-processing time = {0:.2f} seconds'.format(time.time()-local_time))
+        report('\t-processing time = {0:.2f} seconds'.format(time.time()-local_time))
         
-    print('\nCELL SEGMENTATION COMPLETED: total processing time = {0:.2f} seconds'.format(time.time()-global_time))
+    report('\nCELL SEGMENTATION COMPLETED: total processing time = {0:.2f} seconds'.format(time.time()-global_time))
     return nuc_seg, cel_seg, n_nuclei, n_cells
