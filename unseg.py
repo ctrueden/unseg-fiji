@@ -1639,12 +1639,13 @@ def plot_img(img, tlt='', cmp='gray'):
     ax.axis('on')
     plt.show()
 
-# Path to image
-path_to_img = './image/Gallbladder_Normal_Tissue.tif'
-
-# Open and plot the original image
-img = open_img(path_to_img)
-plot_img(img, tlt='Image')
+# Obtain the original image
+if appose_mode:
+    img = task.inputs["image"]
+else:
+    path_to_img = './image/Gallbladder_Normal_Tissue.tif'
+    img = open_img(path_to_img)
+    plot_img(img, tlt='Image')
 
 # Select intensity channels for processing: two channels
 # with nuclei (DAPI) and cell membrane (Na+K+ATPase) markers
@@ -1673,15 +1674,16 @@ mask_nuclei, mask_cells, n_nuclei, n_cells = nuclei_cell_segmentation(
     dilation_radius=5
 )
 
-# To segment nuclei and cells with default settings run the code as follows:
-# mask_nuclei, mask_cells, n_nuclei, n_cells = nuclei_cell_segmentation(intensity)
+if appose_mode:
+    task.outputs["nuclei"] = mask_nuclei
+    task.outputs["cells"] = mask_cells
+else:
+    # Plot nuclei segmentation mask
+    plot_img(mark_boundaries(img, mask_nuclei, color=(1,1,1)), tlt='UNSEG Nuclei Segmentation: N = {0}'.format(n_nuclei))
 
-# Plot nuclei segmentation mask
-plot_img(mark_boundaries(img, mask_nuclei, color=(1,1,1)), tlt='UNSEG Nuclei Segmentation: N = {0}'.format(n_nuclei))
+    # Plot cell segmentation mask
+    plot_img(mark_boundaries(img, mask_cells, color=(0,1,0)), tlt='UNSEG Cell Segmentation: N = {0}'.format(n_cells))
 
-# Plot cell segmentation mask
-plot_img(mark_boundaries(img, mask_cells, color=(0,1,0)), tlt='UNSEG Cell Segmentation: N = {0}'.format(n_cells))
-
-# Save nuclei and cell segmentations as txt files
-#np.savetxt('Segmentation_nuclei_{0}.txt'.format(n_nuclei), mask_nuclei, fmt='%d', delimiter=' ')
-#np.savetxt('Segmentation_cells_{0}.txt'.format(n_cells), mask_cells, fmt='%d', delimiter=' ')
+    # Save nuclei and cell segmentations as txt files
+    #np.savetxt('Segmentation_nuclei_{0}.txt'.format(n_nuclei), mask_nuclei, fmt='%d', delimiter=' ')
+    #np.savetxt('Segmentation_cells_{0}.txt'.format(n_cells), mask_cells, fmt='%d', delimiter=' ')
