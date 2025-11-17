@@ -1620,15 +1620,8 @@ from skimage import io
 from skimage.segmentation import mark_boundaries
 
 def open_img(path_to_img):
-    """Returns the RGB image (img) and two channels with
-    nuclei (DAPI) and cell membrane (Na+K+ATPase) markers"""
-    img = io.imread(path_to_img, plugin="tifffile")
-    h = img.shape[0]
-    w = img.shape[1]
-    intensity = np.zeros((h,w,2), dtype='float64')
-    intensity[:,:,0] = img[:,:,2] # Nuclei Marker
-    intensity[:,:,1] = img[:,:,0] # Cell Membrane Marker
-    return intensity, img
+    """Returns the RGB image (img)"""
+    return io.imread(path_to_img, plugin="tifffile")
 
 def plot_img(img, tlt='', cmp='gray'):
     """ Plot function """
@@ -1643,8 +1636,16 @@ def plot_img(img, tlt='', cmp='gray'):
 path_to_img = './image/Gallbladder_Normal_Tissue.tif'
 
 # Open and plot the original image
-intensity, img = open_img(path_to_img)
+img = open_img(path_to_img)
 plot_img(img, tlt='Image')
+
+# Select intensity channels for processing: two channels
+# with nuclei (DAPI) and cell membrane (Na+K+ATPase) markers
+h = img.shape[0]
+w = img.shape[1]
+intensity = np.zeros((h,w,2), dtype='float64')
+intensity[:,:,0] = img[:,:,2] # Nuclei Marker
+intensity[:,:,1] = img[:,:,0] # Cell Membrane Marker
 
 # Segment Nuclei and Cells
 mask_nuclei, mask_cells, n_nuclei, n_cells = nuclei_cell_segmentation(
