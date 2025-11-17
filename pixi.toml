@@ -8,11 +8,13 @@ version = "0.1.0"
 [tasks]
 
 [dependencies]
-
-[pypi-dependencies]
-opencv-python = "==4.7.0.72"
+python = "3.9.*"
+appose = "==0.7.2"
 numpy = "==1.24.3"
 matplotlib = "==3.7.1"
 scikit-image = "==0.20.0"
 scikit-learn = "==1.2.2"
 scipy = "==1.9.1"
+
+[pypi-dependencies]
+opencv-python-headless = "==4.7.0.72"
