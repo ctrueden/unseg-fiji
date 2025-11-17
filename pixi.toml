@@ -1,0 +1,10 @@
+[workspace]
+authors = ["Curtis Rueden <ctrueden@wisc.edu>"]
+channels = ["conda-forge"]
+name = "unseg-fiji"
+platforms = ["linux-64"]
+version = "0.1.0"
+
+[tasks]
+
+[dependencies]
