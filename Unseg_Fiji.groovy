@@ -35,3 +35,15 @@ println("Environment build complete: ${env.base()}")
 unsegPath = System.getProperty("user.home") + "/Desktop/unseg-fiji/unseg.py"
 unsegScript = new File(unsegPath).text
 println("Loaded unseg script of length ${unsegScript.length()}")
+
+// Conversion functions: ImgLib2 Img <-> Appose NDArray
+import net.imglib2.appose.ShmImg
+imgToAppose = { img ->
+	ndArray = ShmImg.copyOf(image).ndArray()
+	println("Copied image into shared memory: ${ndArray.shape()}")
+	return ndArray
+}
+import net.imglib2.appose.NDArrays
+apposeToImg = { ndarray ->
+	NDArrays.asArrayImg(ndarray)
+}
