@@ -1614,6 +1614,13 @@ def nuclei_cell_segmentation(intensity,
 ###############################################################################
 # Example of Nuclei and Cell Segmentation Using UNSEG
 
+appose_mode = 'task' in globals()
+if appose_mode:
+    listen(task.update)
+else:
+    from appose.python_worker import Task
+    task = Task()
+
 import numpy as np
 import matplotlib.pyplot as plt
 from skimage import io
