@@ -1639,9 +1639,21 @@ def plot_img(img, tlt='', cmp='gray'):
     ax.axis('on')
     plt.show()
 
+def flip_img(img):
+    """Flips a NumPy array between Java (F_ORDER) and NumPy-friendly (C_ORDER)"""
+    return np.transpose(img, tuple(reversed(range(img.ndim))))
+
+def share_as_ndarray(img):
+    """Copies a NumPy array into a same-sized newly allocated block of shared memory"""
+    from appose import NDArray
+    shared = NDArray(str(img.dtype), img.shape)
+    shared.ndarray()[:] = img
+    return shared
+
 # Obtain the original image
 if appose_mode:
-    img = task.inputs["image"]
+    img = flip_img(ndarray.ndarray())
+    task.update(f"Input image of shape: {img.shape}")
 else:
     path_to_img = './image/Gallbladder_Normal_Tissue.tif'
     img = open_img(path_to_img)
@@ -1675,8 +1687,8 @@ mask_nuclei, mask_cells, n_nuclei, n_cells = nuclei_cell_segmentation(
 )
 
 if appose_mode:
-    task.outputs["nuclei"] = mask_nuclei
-    task.outputs["cells"] = mask_cells
+    task.outputs["nuclei"] = share_as_ndarray(flip_img(mask_nuclei))
+    task.outputs["cells"] = share_as_ndarray(flip_img(mask_cells))
 else:
     # Plot nuclei segmentation mask
     plot_img(mark_boundaries(img, mask_nuclei, color=(1,1,1)), tlt='UNSEG Nuclei Segmentation: N = {0}'.format(n_nuclei))
