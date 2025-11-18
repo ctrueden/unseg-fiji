@@ -1,5 +1,7 @@
 ## UNSEG plugin for Fiji
 
+![](screenshot.png)
+
 Segmentation powered by UNSEG:
 
 > Kochetov, B., Bell, P. D., Garcia, P. S., Shalaby, A. S., Raphael, R., Raymond,
