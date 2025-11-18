@@ -47,3 +47,20 @@ import net.imglib2.appose.NDArrays
 apposeToImg = { ndarray ->
 	NDArrays.asArrayImg(ndarray)
 }
+
+// Run the script as an Appose task
+println("== STARTING PYTHON SERVICE ==")
+try (python = env.python()) {
+	inputs = ["ndarray": imgToAppose(image)]
+	task = python.task(unsegScript, inputs)
+		.listen { if (it.message) println("[UNSEG] ${it.message}") }
+		.waitFor()
+
+	println("TASK FINISHED: ${task.status}")
+	if (task.error) println(task.error)
+	nuclei = NDArrays.asArrayImg(task.outputs["nuclei"])
+	cells = NDArrays.asArrayImg(task.outputs["cells"])
+}
+finally {
+	println("== TERMINATING PYTHON SERVICE ==")
+}
