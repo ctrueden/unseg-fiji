@@ -30,3 +30,8 @@ opencv-python-headless = "==4.7.0.72"
 
 env = Appose.pixi().content(pixiToml).logDebug().build()
 println("Environment build complete: ${env.base()}")
+
+// Read in the Python script (TODO: load as resource instead of hardcoding path)
+unsegPath = System.getProperty("user.home") + "/Desktop/unseg-fiji/unseg.py"
+unsegScript = new File(unsegPath).text
+println("Loaded unseg script of length ${unsegScript.length()}")
