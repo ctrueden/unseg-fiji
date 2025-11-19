@@ -1,4 +1,20 @@
 #@ Img image
+
+#@ Integer (value=20) area_threshold
+#@ Integer (value=4) convexity_threshold
+#@ Integer (value=25) cell_marker_threshold
+#@ String (value='GDT') dist_tr
+#@ Integer (value=3) sigma0
+#@ Integer (value=1) k0
+#@ Integer (value=5) r0
+#@ String (value="0.01, 0.01") pct
+#@ String (value="5, 10, 20, 40") nk
+#@ Double (value=0.5) t0
+#@ String (value='Argmax') ternary_met
+#@ Boolean (value=false) visualization
+#@ Double (value=0.65) area_ratio_threshold
+#@ Integer (value=5) dilation_radius
+
 #@output Img nuclei
 #@output Img cells
 
@@ -51,7 +67,23 @@ apposeToImg = { ndarray ->
 // Run the script as an Appose task
 println("== STARTING PYTHON SERVICE ==")
 try (python = env.python()) {
-	inputs = ["ndarray": imgToAppose(image)]
+	inputs = [
+		"ndarray": imgToAppose(image),
+		"area_threshold": area_threshold,
+		"convexity_threshold": convexity_threshold,
+		"cell_marker_threshold": cell_marker_threshold,
+		"dist_tr": dist_tr,
+		"sigma0": sigma0,
+		"k0": k0,
+		"r0": r0,
+		"pct": pct.split(', ')*.toDouble() as double[],
+		"nk": nk.split(', ')*.toInteger() as int[],
+		"t0": t0,
+		"ternary_met": ternary_met,
+		"visualization": visualization,
+		"area_ratio_threshold": area_ratio_threshold,
+		"dilation_radius": dilation_radius,
+	]
 	task = python.task(unsegScript, inputs)
 		.listen { if (it.message) println("[UNSEG] ${it.message}") }
 		.waitFor()

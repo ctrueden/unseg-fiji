@@ -1658,6 +1658,20 @@ else:
     path_to_img = './image/Gallbladder_Normal_Tissue.tif'
     img = open_img(path_to_img)
     plot_img(img, tlt='Image')
+    area_threshold = 20
+    convexity_threshold = 4
+    cell_marker_threshold = 25
+    dist_tr = 'GDT'
+    sigma0 = 3
+    k0 = 1
+    r0 = 5
+    pct = [0.01, 0.01]
+    nk = [5, 10, 20, 40]
+    t0 = 0.5
+    ternary_met = 'Argmax'
+    visualization = False
+    area_ratio_threshold = 0.65
+    dilation_radius = 5
 
 # Select intensity channels for processing: two channels
 # with nuclei (DAPI) and cell membrane (Na+K+ATPase) markers
@@ -1670,20 +1684,20 @@ intensity[:,:,1] = img[:,:,0] # Cell Membrane Marker
 # Segment Nuclei and Cells
 mask_nuclei, mask_cells, n_nuclei, n_cells = nuclei_cell_segmentation(
     intensity,
-    area_threshold=20,
-    convexity_threshold=4,
-    cell_marker_threshold=25,
-    dist_tr='GDT',
-    sigma0=3,
-    k0=1,
-    r0=5,
-    pct=[0.01, 0.01],
-    nk=[5, 10, 20, 40],
-    t0=0.5,
-    ternary_met='Argmax',
-    visualization=False,
-    area_ratio_threshold=0.65,
-    dilation_radius=5
+    area_threshold=area_threshold,
+    convexity_threshold=convexity_threshold,
+    cell_marker_threshold=cell_marker_threshold,
+    dist_tr=dist_tr,
+    sigma0=sigma0,
+    k0=k0,
+    r0=r0,
+    pct=pct,
+    nk=nk,
+    t0=t0,
+    ternary_met=ternary_met,
+    visualization=visualization,
+    area_ratio_threshold=area_ratio_threshold,
+    dilation_radius=dilation_radius
 )
 
 if appose_mode:
