@@ -10,7 +10,7 @@ pixiToml = """
 authors = ["Curtis Rueden <ctrueden@wisc.edu>"]
 channels = ["conda-forge"]
 name = "unseg-fiji"
-platforms = ["linux-64"]
+platforms = ["linux-aarch64", "linux-64", "osx-arm64", "osx-64", "win-64"]
 version = "0.1.0"
 
 [tasks]
