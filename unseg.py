@@ -31,13 +31,6 @@ def listen(callback):
 ###############################################################################
 ### AUXILIARY FUNCTIONS
 ###############################################################################
-def plot_img(img, tlt='', cmp='gray'):
-    fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(15,15))
-    fig.subplots_adjust(left=0.0, bottom=0.0, right=1.0, top=1.0, wspace=None, hspace=None)
-    ax.imshow(img, cmap=cmp)
-    ax.set_title(tlt)
-    ax.axis('on')
-    plt.show()
 
 def scale_img(img, norm='0:1'):
     img = img.astype('float64')
@@ -1632,6 +1625,7 @@ def open_img(path_to_img):
 
 def plot_img(img, tlt='', cmp='gray'):
     """ Plot function """
+    if appose_mode: return
     fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(5,5))
     fig.subplots_adjust(left=0.0, bottom=0.0, right=1.0, top=1.0, wspace=None, hspace=None)
     ax.imshow(img, cmap=cmp)
@@ -1700,16 +1694,15 @@ mask_nuclei, mask_cells, n_nuclei, n_cells = nuclei_cell_segmentation(
     dilation_radius=dilation_radius
 )
 
-if appose_mode:
-    task.outputs["nuclei"] = share_as_ndarray(flip_img(mask_nuclei))
-    task.outputs["cells"] = share_as_ndarray(flip_img(mask_cells))
-else:
-    # Plot nuclei segmentation mask
-    plot_img(mark_boundaries(img, mask_nuclei, color=(1,1,1)), tlt='UNSEG Nuclei Segmentation: N = {0}'.format(n_nuclei))
+# Plot nuclei segmentation mask
+plot_img(mark_boundaries(img, mask_nuclei, color=(1,1,1)), tlt='UNSEG Nuclei Segmentation: N = {0}'.format(n_nuclei))
 
-    # Plot cell segmentation mask
-    plot_img(mark_boundaries(img, mask_cells, color=(0,1,0)), tlt='UNSEG Cell Segmentation: N = {0}'.format(n_cells))
+# Plot cell segmentation mask
+plot_img(mark_boundaries(img, mask_cells, color=(0,1,0)), tlt='UNSEG Cell Segmentation: N = {0}'.format(n_cells))
 
-    # Save nuclei and cell segmentations as txt files
-    #np.savetxt('Segmentation_nuclei_{0}.txt'.format(n_nuclei), mask_nuclei, fmt='%d', delimiter=' ')
-    #np.savetxt('Segmentation_cells_{0}.txt'.format(n_cells), mask_cells, fmt='%d', delimiter=' ')
+# Save nuclei and cell segmentations as txt files
+#np.savetxt('Segmentation_nuclei_{0}.txt'.format(n_nuclei), mask_nuclei, fmt='%d', delimiter=' ')
+#np.savetxt('Segmentation_cells_{0}.txt'.format(n_cells), mask_cells, fmt='%d', delimiter=' ')
+
+task.outputs["nuclei"] = share_as_ndarray(flip_img(mask_nuclei))
+task.outputs["cells"] = share_as_ndarray(flip_img(mask_cells))
