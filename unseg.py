@@ -1633,9 +1633,19 @@ def plot_img(img, tlt='', cmp='gray'):
     ax.axis('on')
     plt.show()
 
-def flip_img(img):
-    """Flips a NumPy array between Java (F_ORDER) and NumPy-friendly (C_ORDER)"""
-    return np.transpose(img, tuple(reversed(range(img.ndim))))
+def fiji_to_skimage_channels(img):
+    """
+    Input image from Fiji will be (CYX), but UNSEG expects (YXC),
+    because skimage.io.imread reorders multichannel images to (YXC).
+
+    This happens even when they are not natively interleaved,
+    which can be seen by opening the following ImageJ sample images:
+
+    - 3_channel_inverted_luts.tif (3 IFDs, BitsPerSample 16, SamplesPerPixel 1)
+    - apple.tif (1 IFD, BitsPerSample 16 16 16, SamplesPerPixel 3)
+    - lake.tif (1 IFD, BitsPerSample 8 8, SamplesPerPixel 2)
+    """
+    return np.transpose(img, (1,2,0))  # CYX -> YXC
 
 def share_as_ndarray(img):
     """Copies a NumPy array into a same-sized newly allocated block of shared memory"""
@@ -1646,7 +1656,7 @@ def share_as_ndarray(img):
 
 # Obtain the original image
 if appose_mode:
-    img = flip_img(ndarray.ndarray())
+    img = fiji_to_skimage_channels(ndarray.ndarray())
     task.update(f"Input image of shape: {img.shape}")
 else:
     path_to_img = './image/Gallbladder_Normal_Tissue.tif'
@@ -1704,5 +1714,5 @@ plot_img(mark_boundaries(img, mask_cells, color=(0,1,0)), tlt='UNSEG Cell Segmen
 #np.savetxt('Segmentation_nuclei_{0}.txt'.format(n_nuclei), mask_nuclei, fmt='%d', delimiter=' ')
 #np.savetxt('Segmentation_cells_{0}.txt'.format(n_cells), mask_cells, fmt='%d', delimiter=' ')
 
-task.outputs["nuclei"] = share_as_ndarray(flip_img(mask_nuclei))
-task.outputs["cells"] = share_as_ndarray(flip_img(mask_cells))
+task.outputs["nuclei"] = share_as_ndarray(mask_nuclei)
+task.outputs["cells"] = share_as_ndarray(mask_cells)
